@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RunDown - Permission Issues</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #0078d4;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .error-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .solution-box {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #0078d4;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #106ebe;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        ul {
+            text-align: left;
+        }
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+        .steps li {
+            counter-increment: step-counter;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .steps li::before {
+            content: counter(step-counter);
+            background: #0078d4;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Permission Configuration Required</h1>
+        
+        <div class="error-info">
+            <h3>What's happening?</h3>
+            <p>Your Microsoft account has been authenticated successfully, but the application doesn't have the necessary permissions to access your emails and calendar. This commonly happens when:</p>
+            <ul>
+                <li>Initial consent was not completed properly</li>
+                <li>Your account is an external user with restricted permissions</li>
+                <li>The application permissions need admin approval</li>
+            </ul>
+        </div>
+
+        <div class="solution-box">
+            <h3>💡 Solution</h3>
+            <p>Try these steps to resolve the permission issues:</p>
+            
+            <ol class="steps">
+                <li>
+                    <strong>Force Re-consent:</strong> This will take you through the Microsoft consent process again to ensure all permissions are properly granted.
+                    <br><br>
+                    <a href="/force-consent" class="btn">🔄 Re-authorize with Full Permissions</a>
+                </li>
+                
+                <li>
+                    <strong>Check Azure Portal:</strong> If you're an admin, verify that the application permissions are properly configured:
+                    <br>
+                    • Mail.Read, Mail.ReadWrite<br>
+                    • Calendars.ReadWrite<br>
+                    • User.Read<br><br>
+                    <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/CallAnAPI/appId/4b7b4c3c-60f0-4f92-bd1d-c222f7683a64" target="_blank" class="btn btn-secondary">🔧 Open Azure Portal</a>
+                </li>
+                
+                <li>
+                    <strong>Contact Administrator:</strong> If you're not an admin, you may need to ask your organization's administrator to grant consent for this application.
+                </li>
+            </ol>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/" class="btn btn-secondary">🏠 Back to Home</a>
+            <a href="/logout" class="btn btn-secondary">🚪 Logout</a>
+        </div>
+    </div>
+</body>
+</html>

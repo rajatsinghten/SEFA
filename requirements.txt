@@ -1,0 +1,13 @@
+Flask
+flask-cors
+msal
+msgraph-core
+requests
+google-generativeai
+cryptography
+python-dotenv
+apscheduler
+flask-session
+python-dateutil
+pytz
+tzlocal
