@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rundown-app
+  labels:
+    app: rundown
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rundown
+  template:
+    metadata:
+      labels:
+        app: rundown
+    spec:
+      containers:
+      - name: rundown
+        image: rundown:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: rundown-secrets
+              key: client-secret
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: rundown-secrets
+              key: google-api-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /auth/status
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /auth/status
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: tokens-volume
+          mountPath: /app/tokens
+        - name: logs-volume
+          mountPath: /app/logs
+      volumes:
+      - name: tokens-volume
+        persistentVolumeClaim:
+          claimName: rundown-tokens-pvc
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: rundown-logs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rundown-service
+spec:
+  selector:
+    app: rundown
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rundown-secrets
+type: Opaque
+data:
+  client-secret: # Base64 encoded CLIENT_SECRET
+  google-api-key: # Base64 encoded GOOGLE_API_KEY
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rundown-tokens-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rundown-logs-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rundown-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - your-domain.com
+    secretName: rundown-tls
+  rules:
+  - host: your-domain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rundown-service
+            port:
+              number: 80
