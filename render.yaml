@@ -1,17 +1,17 @@
 services:
   - type: web
-    name: rundown
+    name: sefa
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.0
+        value: 3.11.0
       - key: FLASK_ENV
         value: production
-      - key: OAUTH_REDIRECT_URI
-        value: https://rundown.onrender.com/oauth/callback
-      - key: GOOGLE_CREDENTIALS
+      - key: PRODUCTION
+        value: "true"
+      - key: CLIENT_SECRET
         sync: false
       - key: GOOGLE_API_KEY
         sync: false

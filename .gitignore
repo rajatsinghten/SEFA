@@ -59,7 +59,7 @@ db.sqlite3
 instance/
 .webassets-cache
 flask_session/
-
+deployment.md
 # Scrapy stuff:
 .scrapy
 

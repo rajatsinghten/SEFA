@@ -1,33 +1,57 @@
-from flask import Blueprint, jsonify, session, redirect, request, render_template
-from utils.auth import load_credentials, require_auth
+from flask import Blueprint, jsonify, session, request, render_template
+from utils.auth import require_auth
 from utils.models import UserPreferences
 
 preferences_bp = Blueprint('preferences', __name__)
 
 AVAILABLE_CATEGORIES = [
-    "Internship", 
-    "Hackathon", 
-    "Cultural Events", 
-    "Sports Events",
+    # Professional & Academic
     "Academics",
-    "Professional Development",
-    "Research Opportunities",
+    "Internship",
+    "Hackathon",
     "Meetings",
     "Workshops",
     "Conferences",
+    "Webinars",
+    "Networking Events",
+    "Career Fairs",
+    "Project Deadlines",
+    "Professional Development",
+    "Research Opportunities",
+
+    # Social & Community
+    "Cultural Events",
+    "Sports Events",
+    "Social Events",
     "Charity Events",
     "Volunteer Opportunities",
     "Clubs & Organizations",
-    "Social Events"
+    
+    # Personal & Wellness
+    "Health & Wellness",
+    "Fitness",
+    "Doctor Appointments",
+    "Family & Friends",
+    "Birthdays",
+    "Anniversaries",
+    
+    # Errands & Finance
+    "Personal Errands",
+    "Groceries",
+    "Bill Payments",
+    "Personal Finance",
+    
+    # Leisure & Travel
+    "Hobbies",
+    "Travel",
+    "Bookings"
 ]
 
 @preferences_bp.route('/preferences')
 @require_auth
 def preferences_page():
-    """Render the preferences page."""
     user_id = session.get('user_id')
     user_preferences = UserPreferences.load_preferences(user_id)
-    
     return render_template('preferences.html', 
                           categories=AVAILABLE_CATEGORIES,
                           user_preferences=user_preferences)
@@ -35,7 +59,6 @@ def preferences_page():
 @preferences_bp.route('/api/preferences', methods=['GET'])
 @require_auth
 def get_preferences():
-    """Get user preferences."""
     user_id = session.get('user_id')
     try:
         preferences = UserPreferences.load_preferences(user_id)
@@ -46,20 +69,17 @@ def get_preferences():
 @preferences_bp.route('/api/preferences', methods=['POST'])
 @require_auth
 def update_preferences():
-    """Update user preferences."""
     user_id = session.get('user_id')
     try:
         data = request.json
         interests = data.get('interests', [])
         custom_interests = data.get('custom_interests', [])
         
-        # Validate that all standard interests are in the available categories
         for interest in interests:
             if interest not in AVAILABLE_CATEGORIES and interest not in custom_interests:
                 return jsonify({"error": f"Invalid interest: {interest}"}), 400
                 
-        # Combine standard and custom interests
-        all_interests = interests + custom_interests
+        all_interests = list(set(interests + custom_interests))
         
         preferences = {
             "interests": all_interests,
@@ -70,4 +90,4 @@ def update_preferences():
         UserPreferences.update_preferences(user_id, preferences)
         return jsonify({"success": True, "preferences": preferences})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500 
+        return jsonify({"error": str(e)}), 500
