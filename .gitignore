@@ -10,6 +10,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+test.py
 
 # Ignore virtual environment
 venv/

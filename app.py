@@ -4,10 +4,12 @@ from flask_session import Session
 from apscheduler.schedulers.background import BackgroundScheduler
 import google.generativeai as genai
 import os
+import json
  
 from config import SECRET_KEY, TOKENS_DIR, LABEL_NAME, GOOGLE_API_KEY
 from utils.auth import get_token_from_cache
-from utils.outlook import create_outlook_category, fetch_emails, mark_email_with_category, extract_email_content
+from utils.outlook import create_outlook_category, fetch_emails_with_mime, mark_email_with_category, extract_email_content
+from utils.calendar import create_calendar_event
 from utils.models import UserPreferences
 
 app = Flask(__name__)
@@ -87,7 +89,7 @@ def process_emails():
                 continue
             
             
-            emails = fetch_emails(user_id, days=1)  
+            emails = fetch_emails_with_mime(user_id, days=1)  
             if not emails or isinstance(emails, dict) and 'error' in emails:
                 print(f"Failed to fetch emails for user {user_id}: {emails}")
                 continue
@@ -124,6 +126,76 @@ def process_emails():
                         continue
                 
                 mark_email_with_category(access_token, email_id, LABEL_NAME)
+                
+                # AI-powered date detection and calendar event creation
+                try:
+                    import google.generativeai as genai
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    
+                    prompt = f"""
+                    Analyze this email for any dates, deadlines, meetings, or events that should be added to a calendar.
+                    
+                    Email Subject: {subject}
+                    Email Content: {content[:1000]}  # Limit content for AI processing
+                    
+                    If there are any calendar-worthy items, respond with JSON in this format:
+                    {{
+                        "has_events": true,
+                        "events": [
+                            {{
+                                "title": "Event title",
+                                "date": "YYYY-MM-DD",
+                                "time": "HH:MM" (if specified, otherwise "09:00"),
+                                "description": "Brief description"
+                            }}
+                        ]
+                    }}
+                    
+                    If no calendar items found, respond with: {{"has_events": false}}
+                    
+                    Only extract real dates and events, not hypothetical ones.
+                    """
+                    
+                    response = model.generate_content(prompt)
+                    ai_result = response.text.strip()
+                    
+                    try:
+                        # Clean the response in case it has markdown formatting
+                        if ai_result.startswith('```json'):
+                            ai_result = ai_result.split('```json')[1].split('```')[0].strip()
+                        elif ai_result.startswith('```'):
+                            ai_result = ai_result.split('```')[1].strip()
+                        
+                        calendar_data = json.loads(ai_result)
+                        
+                        if calendar_data.get('has_events', False):
+                            for event_data in calendar_data.get('events', []):
+                                try:
+                                    # Create calendar event
+                                    event_result = create_calendar_event(
+                                        user_id=user_id,
+                                        subject=event_data['title'],
+                                        sender=sender,
+                                        date_str=event_data['date'],
+                                        iso_date=f"{event_data['date']}T{event_data.get('time', '09:00')}:00",
+                                        description=f"From email: {subject}\n\n{event_data.get('description', '')}"
+                                    )
+                                    
+                                    if event_result and 'error' not in event_result:
+                                        print(f"✅ Created calendar event: {event_data['title']} on {event_data['date']}")
+                                    else:
+                                        print(f"❌ Failed to create calendar event: {event_result}")
+                                        
+                                except Exception as event_error:
+                                    print(f"❌ Error creating calendar event: {event_error}")
+                                    
+                    except json.JSONDecodeError as json_error:
+                        print(f"❌ Failed to parse AI response as JSON: {json_error}")
+                        print(f"AI Response: {ai_result}")
+                        
+                except Exception as ai_error:
+                    print(f"❌ AI processing error: {ai_error}")
+                
                 print(f"✅ Processed email: {subject}")
                 
         except Exception as e:
@@ -136,11 +208,13 @@ scheduler.add_job(func=process_emails, trigger='interval', minutes=50)
 
 from routes.auth_routes import auth_bp
 from routes.chat_routes import chat_bp
+from routes.calendar_routes import calendar_bp
 from routes.outlook_routes import outlook_bp
 from routes.preferences_routes import preferences_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(chat_bp)
+app.register_blueprint(calendar_bp)
 app.register_blueprint(outlook_bp)  
 app.register_blueprint(preferences_bp)
 

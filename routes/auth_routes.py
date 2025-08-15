@@ -30,7 +30,7 @@ def force_reconsent():
         print(traceback.format_exc())
         return render_template('error.html', error=str(e))
 
-@auth_bp.route('/oauth/callback')
+@auth_bp.route('/callback')
 def callback():
     try:
         # Get the authorization code from the callback

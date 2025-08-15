@@ -2,25 +2,15 @@ from flask import current_app
 from flask import Blueprint, request, jsonify, session
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
-from utils.outlook import fetch_emails
+from utils.outlook import fetch_emails_with_mime
 from utils.auth import get_token_from_cache, require_auth
 from utils.models import UserPreferences
+from utils.calendar import fetch_calendar_events, create_calendar_event, delete_calendar_event
 import json
 from datetime import datetime, timedelta, time
 import traceback
 
-# Stub functions to replace calendar functionality
-def fetch_calendar_events(user_id):
-    """Stub function - calendar functionality disabled"""
-    return []
 
-def create_calendar_event(*args, **kwargs):
-    """Stub function - calendar functionality disabled"""
-    return {"status": "disabled", "message": "Calendar functionality has been disabled"}
-
-def delete_calendar_event(user_id, event_id):
-    """Stub function - calendar functionality disabled"""
-    return {"status": "disabled", "message": "Calendar functionality has been disabled"}
 import re
 import os
 import pytz
@@ -140,7 +130,7 @@ def chat():
         
         # Handle normal chat (not a command)
         calendar_events = fetch_calendar_events(user_id)
-        emails = fetch_emails(user_id)
+        emails = fetch_emails_with_mime(user_id)
         relevant_data = emails if "@email" in user_message.lower() else calendar_events
 
         prompt = f"""
@@ -357,7 +347,6 @@ def remove_event_command(command_content, user_id):
     try:
         # First check if it's an event ID
         try:
-            from utils.calendar import delete_calendar_event
             result = delete_calendar_event(user_id, command_content)
             if result.get("status") == "deleted":
                 return jsonify({
@@ -394,7 +383,6 @@ def remove_event_command(command_content, user_id):
             # Only one match, delete it
             event = matching_events[0]
             event_id = event.get("id")
-            from utils.calendar import delete_calendar_event
             delete_calendar_event(user_id, event_id)
             
             return jsonify({
@@ -528,7 +516,7 @@ def add_suggestion():
         time_period = int(data.get('time_period', 7))
         
         # Pass the time period to fetch_emails
-        emails = fetch_emails(user_id, days=time_period)
+        emails = fetch_emails_with_mime(user_id, days=time_period)
         
         # Check if fetch_emails returned an error
         if isinstance(emails, dict) and 'error' in emails:

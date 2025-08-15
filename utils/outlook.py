@@ -269,118 +269,7 @@ def get_stored_email_files(user_id=None):
         return []
 
 
-def fetch_emails(user_id, days=7):
-    """
-    Fetch emails from Outlook inbox
-    
-    Args:
-        user_id: The user ID to fetch emails for
-        days: Number of days to look back for emails (default: 7)
-    
-    Returns:
-        List of email objects with id, subject, content, and date
-    """
-    print(f"\n📧 FETCHING EMAILS FOR USER: {user_id[:8]}...")
-    access_token = get_token_from_cache(user_id)
-    if not access_token:
-        print("❌ No valid access token found")
-        return []
-    
-    try:
-        # Calculate the date range
-        date_from = (datetime.now() - timedelta(days=days)).isoformat() + 'Z'
-        
-        # Query for emails from the specified time period
-        url = "https://graph.microsoft.com/v1.0/me/messages"
-        params = {
-            '$filter': f"receivedDateTime ge {date_from}",
-            '$top': 10,
-            '$orderby': 'receivedDateTime desc',
-            '$select': 'id,subject,from,receivedDateTime,body,categories'
-        }
-        
-        response = make_graph_request(access_token, url, method='GET', params=params)
-        
-        if response and response.status_code == 200:
-            emails_data = response.json().get('value', [])
-            emails = []
-            
-            print(f"✅ Found {len(emails_data)} emails from last {days} days")
-            for email_data in emails_data:
-                email = {
-                    'id': email_data['id'],
-                    'subject': email_data.get('subject', 'No Subject'),
-                    'sender': email_data.get('from', {}).get('emailAddress', {}).get('address', 'Unknown Sender'),
-                    'content': email_data.get('body', {}).get('content', 'No content available'),
-                    'bodyType': email_data.get('body', {}).get('contentType', 'text'),
-                    'receivedDateTime': email_data.get('receivedDateTime', ''),
-                    'categories': email_data.get('categories', [])
-                }
-                emails.append(email)
-                
-                # Display email info in terminal
-                print(f"  📨 {email['subject'][:50]}...")
-                print(f"     From: {email['sender']}")
-                print(f"     Date: {email['receivedDateTime']}")
-                print("")
-            
-            # Save emails to JSON file
-            filepath = save_emails_to_json(user_id, emails)
-            if filepath:
-                print(f"💾 Emails saved to: {filepath}")
-            
-            return emails
-            
-        elif response and response.status_code == 401:
-            print("⚠️ Authentication error - trying beta endpoint...")
-            # Try beta endpoint
-            beta_url = "https://graph.microsoft.com/beta/me/mailFolders/inbox/messages"
-            beta_response = make_graph_request(access_token, beta_url, method='GET', params=params)
-            
-            if beta_response and beta_response.status_code == 200:
-                emails_data = beta_response.json().get('value', [])
-                emails = []
-                
-                print(f"✅ Found {len(emails_data)} emails via beta endpoint")
-                for email_data in emails_data:
-                    email = {
-                        'id': email_data['id'],
-                        'subject': email_data.get('subject', 'No Subject'),
-                        'sender': email_data.get('from', {}).get('emailAddress', {}).get('address', 'Unknown Sender'),
-                        'content': email_data.get('body', {}).get('content', 'No content available'),
-                        'bodyType': email_data.get('body', {}).get('contentType', 'text'),
-                        'receivedDateTime': email_data.get('receivedDateTime', ''),
-                        'categories': email_data.get('categories', [])
-                    }
-                    emails.append(email)
-                    
-                    # Display email info in terminal
-                    print(f"  📨 {email['subject'][:50]}...")
-                    print(f"     From: {email['sender']}")
-                    print(f"     Date: {email['receivedDateTime']}")
-                    print("")
-                
-                # Save emails to JSON file
-                filepath = save_emails_to_json(user_id, emails)
-                if filepath:
-                    print(f"💾 Emails saved to: {filepath}")
-                
-                return emails
-            else:
-                print("❌ Both v1.0 and beta endpoints failed - Permission issue")
-                print("🔧 SOLUTION: Configure application permissions in Azure Portal:")
-                print("   1. Go to Azure Portal → App registrations → Rundown")
-                print("   2. Add Application permissions for Mail.Read and Mail.ReadWrite")
-                print("   3. Grant admin consent")
-                return []
-        else:
-            print("❌ Email fetch failed - Permission issue")
-            print("🔧 SOLUTION: Configure application permissions in Azure Portal")
-            return []
-            
-    except Exception as e:
-        print(f"❌ Error fetching emails: {str(e)}")
-        return []
+
 
 
 def mark_email_with_category(access_token, email_id, category_name):
@@ -418,3 +307,142 @@ def extract_email_content(email_body, body_type):
         return text.strip()
     else:
         return email_body.strip()
+def fetch_emails_with_mime(user_id, days=7):
+    """
+    Fetch emails from Outlook inbox, including raw MIME content.
+    
+    Args:
+        user_id: The user ID to fetch emails for
+        days: Number of days to look back for emails (default: 7)
+    
+    Returns:
+        List of email objects with id, subject, content, date, and MIME content
+    """
+    print(f"\n📧 FETCHING EMAILS + MIME FOR USER: {user_id[:8]}...")
+    access_token = get_token_from_cache(user_id)
+    if not access_token:
+        print("❌ No valid access token found")
+        return []
+
+    try:
+        # Calculate the date range
+        date_from = (datetime.now() - timedelta(days=days)).isoformat() + 'Z'
+        
+        # Query for emails from the specified time period
+        url = "https://graph.microsoft.com/v1.0/me/messages"
+        params = {
+            '$filter': f"receivedDateTime ge {date_from}",
+            '$top': 10,
+            '$orderby': 'receivedDateTime desc',
+            '$select': 'id,subject,from,receivedDateTime,body,categories'
+        }
+
+        response = make_graph_request(access_token, url, method='GET', params=params)
+
+        if response and response.status_code == 200:
+            emails_data = response.json().get('value', [])
+            emails = []
+
+            print(f"✅ Found {len(emails_data)} emails from last {days} days")
+            for email_data in emails_data:
+                email_id = email_data['id']
+
+                # Fetch MIME for each email
+                mime_url = f"https://graph.microsoft.com/v1.0/me/messages/{email_id}/$value"
+                mime_headers = {
+                    'Authorization': f'Bearer {access_token}',
+                    'Accept': 'application/octet-stream'
+                }
+                mime_resp = requests.get(mime_url, headers=mime_headers, timeout=30)
+                mime_content = mime_resp.text if mime_resp.status_code == 200 else None
+
+                email = {
+                    'id': email_id,
+                    'subject': email_data.get('subject', 'No Subject'),
+                    'sender': email_data.get('from', {}).get('emailAddress', {}).get('address', 'Unknown Sender'),
+                    'content': email_data.get('body', {}).get('content', 'No content available'),
+                    'bodyType': email_data.get('body', {}).get('contentType', 'text'),
+                    'receivedDateTime': email_data.get('receivedDateTime', ''),
+                    'categories': email_data.get('categories', []),
+                    'mime': mime_content
+                }
+                emails.append(email)
+                
+                # Display email info in terminal
+                print(f"  📨 {email['subject'][:50]}...")
+                print(f"     From: {email['sender']}")
+                print(f"     Date: {email['receivedDateTime']}")
+                print(f"     MIME: {'✅ Retrieved' if mime_content else '❌ Failed'}")
+                print("")
+
+            # Save emails to JSON file
+            filepath = save_emails_to_json(user_id, emails)
+            if filepath:
+                print(f"💾 Emails (with MIME) saved to: {filepath}")
+
+            return emails
+            
+        elif response and response.status_code == 401:
+            print("⚠️ Authentication error - trying beta endpoint...")
+            # Try beta endpoint
+            beta_url = "https://graph.microsoft.com/beta/me/mailFolders/inbox/messages"
+            beta_response = make_graph_request(access_token, beta_url, method='GET', params=params)
+            
+            if beta_response and beta_response.status_code == 200:
+                emails_data = beta_response.json().get('value', [])
+                emails = []
+                
+                print(f"✅ Found {len(emails_data)} emails via beta endpoint")
+                for email_data in emails_data:
+                    email_id = email_data['id']
+
+                    # Fetch MIME for each email
+                    mime_url = f"https://graph.microsoft.com/beta/me/messages/{email_id}/$value"
+                    mime_headers = {
+                        'Authorization': f'Bearer {access_token}',
+                        'Accept': 'application/octet-stream'
+                    }
+                    mime_resp = requests.get(mime_url, headers=mime_headers, timeout=30)
+                    mime_content = mime_resp.text if mime_resp.status_code == 200 else None
+
+                    email = {
+                        'id': email_id,
+                        'subject': email_data.get('subject', 'No Subject'),
+                        'sender': email_data.get('from', {}).get('emailAddress', {}).get('address', 'Unknown Sender'),
+                        'content': email_data.get('body', {}).get('content', 'No content available'),
+                        'bodyType': email_data.get('body', {}).get('contentType', 'text'),
+                        'receivedDateTime': email_data.get('receivedDateTime', ''),
+                        'categories': email_data.get('categories', []),
+                        'mime': mime_content
+                    }
+                    emails.append(email)
+                    
+                    # Display email info in terminal
+                    print(f"  📨 {email['subject'][:50]}...")
+                    print(f"     From: {email['sender']}")
+                    print(f"     Date: {email['receivedDateTime']}")
+                    print(f"     MIME: {'✅ Retrieved' if mime_content else '❌ Failed'}")
+                    print("")
+                
+                # Save emails to JSON file
+                filepath = save_emails_to_json(user_id, emails)
+                if filepath:
+                    print(f"💾 Emails (with MIME) saved to: {filepath}")
+                
+                return emails
+            else:
+                print("❌ Both v1.0 and beta endpoints failed - Permission issue")
+                print("🔧 SOLUTION: Configure application permissions in Azure Portal:")
+                print("   1. Go to Azure Portal → App registrations → Rundown")
+                print("   2. Add Application permissions for Mail.Read and Mail.ReadWrite")
+                print("   3. Grant admin consent")
+                return []
+        else:
+            print("❌ Email fetch failed - Permission issue")
+            print("🔧 SOLUTION: Configure application permissions in Azure Portal")
+            handle_outlook_api_error(response)
+            return []
+
+    except Exception as e:
+        print(f"❌ Error fetching emails with MIME: {str(e)}")
+        return []

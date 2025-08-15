@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, session, redirect, current_app
-from utils.outlook import fetch_emails
+from utils.outlook import fetch_emails_with_mime
 from utils.auth import require_auth
 
 outlook_bp = Blueprint('outlook', __name__)
@@ -9,7 +9,7 @@ outlook_bp = Blueprint('outlook', __name__)
 def get_emails():
     user_id = session['user_id']
     try:
-        email_details = fetch_emails(user_id)
+        email_details = fetch_emails_with_mime(user_id)
         if email_details is None:
             return redirect('/login')
         return jsonify({'emails': email_details})
