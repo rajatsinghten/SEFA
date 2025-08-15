@@ -234,6 +234,11 @@ footer .container {
     color: #605e5c !important;
 }
 
+.footer-description {
+    color: #94a3b8 !important;
+    line-height: 1.8;
+}
+
 .footer-content {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

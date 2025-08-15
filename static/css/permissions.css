@@ -1,0 +1,100 @@
+/* Permissions Error Page Styles */
+
+.permissions-body {
+  font-family: 'Poppins', sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.permissions-container {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.permissions-title {
+  color: #0078d4;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.error-info {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.solution-box {
+  background-color: #d1ecf1;
+  border: 1px solid #bee5eb;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.permissions-btn {
+  display: inline-block;
+  background-color: #0078d4;
+  color: white;
+  padding: 12px 24px;
+  text-decoration: none;
+  border-radius: 5px;
+  margin: 10px 0;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.permissions-btn:hover {
+  background-color: #106ebe;
+}
+
+.permissions-btn.secondary {
+  background-color: #6c757d;
+}
+
+.permissions-btn.secondary:hover {
+  background-color: #545b62;
+}
+
+.permissions-list {
+  text-align: left;
+}
+
+.steps {
+  counter-reset: step-counter;
+  list-style: none;
+  padding: 0;
+}
+
+.steps li {
+  counter-increment: step-counter;
+  margin: 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 5px;
+}
+
+.steps li::before {
+  content: counter(step-counter);
+  background: #0078d4;
+  color: white;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.permissions-actions {
+  text-align: center;
+  margin-top: 30px;
+}
