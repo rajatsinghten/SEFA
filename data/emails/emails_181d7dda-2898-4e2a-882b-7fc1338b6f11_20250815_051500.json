@@ -1,0 +1,34 @@
+{
+  "user_id": "181d7dda-2898-4e2a-882b-7fc1338b6f11",
+  "fetch_timestamp": "2025-08-15T05:15:00.000000",
+  "email_count": 3,
+  "emails": [
+    {
+      "id": "example_email_id_1",
+      "subject": "Important Meeting Tomorrow",
+      "sender": "manager@company.com",
+      "content": "<html><body>Hi Team,<br><br>We have an important meeting scheduled for tomorrow at 10 AM. Please prepare your reports.<br><br>Best regards,<br>Manager</body></html>",
+      "bodyType": "html",
+      "receivedDateTime": "2025-08-14T15:30:00Z",
+      "categories": ["Important"]
+    },
+    {
+      "id": "example_email_id_2",
+      "subject": "Weekly Newsletter",
+      "sender": "newsletter@company.com",
+      "content": "This week's highlights: New product launches, team achievements, and upcoming events.",
+      "bodyType": "text",
+      "receivedDateTime": "2025-08-14T12:00:00Z",
+      "categories": []
+    },
+    {
+      "id": "example_email_id_3",
+      "subject": "Hackathon Registration Open",
+      "sender": "events@techcompany.com",
+      "content": "<html><body>Register now for our annual hackathon! Limited seats available.<br><br>Event Date: August 20-21, 2025<br>Location: Tech Campus</body></html>",
+      "bodyType": "html",
+      "receivedDateTime": "2025-08-13T14:45:00Z",
+      "categories": ["Events", "Hackathon"]
+    }
+  ]
+}

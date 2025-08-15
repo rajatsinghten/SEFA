@@ -2,13 +2,25 @@ from flask import current_app
 from flask import Blueprint, request, jsonify, session
 import google.generativeai as genai
 from config import GOOGLE_API_KEY
-from utils.calendar import fetch_calendar_events, create_calendar_event, delete_calendar_event
 from utils.outlook import fetch_emails
 from utils.auth import get_token_from_cache, require_auth
 from utils.models import UserPreferences
 import json
 from datetime import datetime, timedelta, time
 import traceback
+
+# Stub functions to replace calendar functionality
+def fetch_calendar_events(user_id):
+    """Stub function - calendar functionality disabled"""
+    return []
+
+def create_calendar_event(*args, **kwargs):
+    """Stub function - calendar functionality disabled"""
+    return {"status": "disabled", "message": "Calendar functionality has been disabled"}
+
+def delete_calendar_event(user_id, event_id):
+    """Stub function - calendar functionality disabled"""
+    return {"status": "disabled", "message": "Calendar functionality has been disabled"}
 import re
 import os
 import pytz
@@ -517,6 +529,26 @@ def add_suggestion():
         
         # Pass the time period to fetch_emails
         emails = fetch_emails(user_id, days=time_period)
+        
+        # Check if fetch_emails returned an error
+        if isinstance(emails, dict) and 'error' in emails:
+            current_app.logger.error(f"Failed to fetch emails: {emails.get('error', 'Unknown error')}")
+            return jsonify({
+                "status": "error",
+                "message": f"Failed to fetch emails: {emails.get('message', emails.get('error', 'Unknown error'))}",
+                "command_detected": True,
+                "markdown": True
+            })
+        
+        # Ensure emails is a list
+        if not isinstance(emails, list):
+            current_app.logger.error(f"Expected list of emails, got: {type(emails)}")
+            return jsonify({
+                "status": "error", 
+                "message": "Failed to fetch emails - invalid response format",
+                "command_detected": True,
+                "markdown": True
+            })
         
         # Fetch existing calendar events to check for duplicates
         calendar_events = fetch_calendar_events(user_id)

@@ -15,6 +15,21 @@ def login():
         print(traceback.format_exc())
         return render_template('error.html', error=str(e))
 
+@auth_bp.route('/force-reconsent')
+def force_reconsent():
+    """Force a new consent flow to update permissions"""
+    try:
+        # Clear existing session
+        session.clear()
+        
+        # Get auth URL with forced consent
+        auth_url = get_auth_url()
+        return redirect(auth_url)
+    except Exception as e:
+        print(f"Error in force-reconsent route: {str(e)}")
+        print(traceback.format_exc())
+        return render_template('error.html', error=str(e))
+
 @auth_bp.route('/oauth/callback')
 def callback():
     try:
@@ -60,6 +75,19 @@ def callback():
         session.permanent = True
         
         print(f"User authenticated: {user_id} ({session['user_email']})")
+        
+        # Show email endpoint information in terminal
+        print("\n" + "="*60)
+        print("🎉 USER SUCCESSFULLY AUTHENTICATED!")
+        print(f"👤 User: {session['user_name']} ({session['user_email']})")
+        print("="*60)
+        print("📧 EMAIL ENDPOINTS AVAILABLE:")
+        print(f"   GET http://localhost:5000/outlook")
+        print(f"   🔗 Access directly: curl http://localhost:5000/outlook")
+        print("="*60)
+        print("💡 The application will now fetch and store emails in JSON format")
+        print("📁 Email data will be saved to: data/emails/")
+        print("="*60 + "\n")
         
         # Set a cookie to track successful authentication
         resp = make_response(redirect('/'))
